@@ -1,7 +1,10 @@
 import type { NextPage } from 'next';
 import Head from 'next/head';
 import Image from 'next/image';
+import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
+import React from 'react';
+
 // TODO: impl POC for web auth
 // import {
 //   GoogleLogin,
@@ -20,6 +23,18 @@ const Home: NextPage = () => {
   //   onError: (errorResponse) => console.log(errorResponse),
   //   onNonOAuthError: (nonOAuthError) => console.log(nonOAuthError),
   // });
+  const router = useRouter();
+  const [oneTimeCode, setOneTimeCode] = React.useState<string | null>(null);
+  const [idToken, setIdToken] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const regex = /code=([^&]*)/;
+    const urlParams = window.location.href.match(regex);
+    if (!urlParams?.length || urlParams.length < 1) return;
+    const oneTimeCode = urlParams[1];
+    console.log(oneTimeCode);
+    setOneTimeCode(() => decodeURIComponent(oneTimeCode));
+  }, []);
 
   const sendPostRequest = async (code: string) => {
     const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -68,30 +83,50 @@ const Home: NextPage = () => {
         {/* USE AUTH API */}
 
         <div>
-          <button
-            onClick={() => {
-              window.location.href = `https://accounts.google.com/o/oauth2/auth?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code&scope=email%20profile&access_type=offline`;
-            }}
-          >
-            Step#1: Generate one time Auth code
-          </button>
+          {!oneTimeCode ? (
+            <button
+              onClick={async () => {
+                window.location.href = `https://accounts.google.com/o/oauth2/auth?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code&scope=email%20profile&access_type=offline`;
+              }}
+            >
+              Login with Google
+            </button>
+          ) : null}
           <br />
-          <button
-            onClick={async () => {
-              const regex = /code=([^&]*)/;
-              const urlParams = window.location.href.match(regex);
-              if (!urlParams?.length || urlParams.length < 1) return;
-              const oneTimeCode = urlParams[1];
-              console.log(decodeURIComponent(oneTimeCode));
-              const accessToken = await sendPostRequest(
-                decodeURIComponent(oneTimeCode),
-              );
-              console.log(accessToken);
-              alert('Check console for access token');
-            }}
-          >
-            Step#2: Get access token
-          </button>
+          {oneTimeCode && !idToken ? (
+            <button
+              onClick={async () => {
+                const result = await sendPostRequest(oneTimeCode);
+                console.log(result);
+                setIdToken(() => result.id_token);
+                router.push('/');
+              }}
+            >
+              Get ID token (JWT)
+            </button>
+          ) : null}
+          {idToken ? (
+            <div>
+              <h1>ID token (JWT)</h1>
+              <p
+                style={{
+                  width: '100%',
+                  wordBreak: 'break-all',
+                  whiteSpace: 'normal',
+                }}
+              >
+                {idToken}
+              </p>
+              <button
+                onClick={() => {
+                  setIdToken(null);
+                  setOneTimeCode(null);
+                }}
+              >
+                Restart
+              </button>
+            </div>
+          ) : null}
 
           {/* USE SDK */}
           {/* <h1>Out of the box button</h1>
