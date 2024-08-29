@@ -1,9 +1,9 @@
 import type { NextPage } from 'next';
 import Head from 'next/head';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
 import React from 'react';
+import { jwtDecode } from 'jwt-decode';
 
 // TODO: impl POC for web auth
 // import {
@@ -116,6 +116,22 @@ const Home: NextPage = () => {
                 }}
               >
                 {idToken}
+              </p>
+              <h1>Decoded data</h1>
+              <p
+                style={{
+                  width: '100%',
+                  wordBreak: 'break-all',
+                  whiteSpace: 'normal',
+                }}
+              >
+                {Object.entries(jwtDecode(idToken)).map(([key, value]) => {
+                  return (
+                    <div key={key}>
+                      <b>{key}</b>: {value}
+                    </div>
+                  );
+                })}
               </p>
               <button
                 onClick={() => {
